@@ -59,7 +59,7 @@ export default function Home() {
   const [rawOutput, setRawOutput] = useState("");
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [dailyGoals, setDailyGoals] = useState<DailyGoals>({
-    calories: "",
+    calories: "2000",
     proteinPct: 30,
     carbsPct: 40,
     fatPct: 30,
@@ -74,14 +74,12 @@ export default function Home() {
   const totals = mealSections.reduce(
     (acc, meal) => {
       for (const entry of entries[meal]) {
-        // Entries already represent the total for the given quantity,
-        // so we sum the parsed values directly (no extra qty multiplier).
         acc.calories += toNumber(entry.calories);
         acc.protein += toNumber(entry.protein);
         acc.carbs += toNumber(entry.carbs);
         acc.fat += toNumber(entry.fat);
       }
-
+  
       return acc;
     },
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -139,28 +137,34 @@ export default function Home() {
         .replace(/\s*```$/i, "")
         .trim();
 
-      try {
-        const jsonCandidate = extractJsonObject(normalizedResult) ?? normalizedResult;
-        const parsed = JSON.parse(jsonCandidate) as Partial<FoodEntry>;
-        const entry: FoodEntry = {
-          name: String(parsed.name ?? input),
-          quantity: parsed.quantity ?? 1,
-          calories: parsed.calories ?? "-",
-          protein: parsed.protein ?? "-",
-          carbs: parsed.carbs ?? "-",
-          fat: parsed.fat ?? "-",
-        };
-
-        setEntries((current) => ({
-          ...current,
-          [activeMeal]: [...current[activeMeal], entry],
-        }));
-        setInput("");
-        setActiveMeal(null);
-      } catch {
-        setError("Could not parse response as JSON");
-        setRawOutput(rawResult);
-      }
+        try {
+          const jsonCandidate = extractJsonObject(normalizedResult) ?? normalizedResult;
+          const parsed = JSON.parse(jsonCandidate) as { items?: Partial<FoodEntry>[] };
+        
+          if (!parsed.items || !Array.isArray(parsed.items) || parsed.items.length === 0) {
+            throw new Error("No food items returned");
+          }
+        
+          const newEntries: FoodEntry[] = parsed.items.map((item) => ({
+            name: String(item.name ?? input),
+            quantity: item.quantity ?? 1,
+            calories: item.calories ?? "-",
+            protein: item.protein ?? "-",
+            carbs: item.carbs ?? "-",
+            fat: item.fat ?? "-",
+          }));
+        
+          setEntries((current) => ({
+            ...current,
+            [activeMeal]: [...current[activeMeal], ...newEntries],
+          }));
+        
+          setInput("");
+          setActiveMeal(null);
+        } catch {
+          setError("Could not parse response as JSON");
+          setRawOutput(rawResult);
+        }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong while fetching data";
