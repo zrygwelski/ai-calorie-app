@@ -98,14 +98,14 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<UserName>("Zach");
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
-  const [usersData, setUsersData] = useState<Record<UserName, UserData>>(
-    () => initialUsersData
-  );
+  const [usersData, setUsersData] = useState<Record<UserName, UserData>>(initialUsersData);
+  const hasMounted = useRef(false);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
+        hasMounted.current = true;
         return;
       }
 
@@ -121,10 +121,16 @@ export default function Home() {
       setUsersData(loadedUsersData);
     } catch {
       // Ignore invalid storage data and continue with defaults
+    } finally {
+      hasMounted.current = true;
     }
   }, []);
 
   useEffect(() => {
+    if (!hasMounted.current) {
+      return;
+    }
+
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -351,20 +357,30 @@ export default function Home() {
 
         {/* <p className="branding-tagline">No stress. Just progress.</p> */}
 
-        <section className="goals" aria-label="Goals">
-          <div className="goals-header">
+        {/* <p className="branding-tagline">No stress. Just progress.</p> */}
+
+        <section className="summary" aria-label="Daily summary">
+          <div className="summary-header">
             <div>
-              <p className="eyebrow">Goals</p>
-              <h2>Daily Targets</h2>
+              <p className="eyebrow">Daily Summary</p>
             </div>
-            <button
-              type="button"
-              className="goals-toggle"
-              onClick={() => setGoalsOpen((current) => !current)}
-              aria-expanded={goalsOpen}
-            >
-              {goalsOpen ? "Collapse" : "Set goals"}
-            </button>
+            <div className="summary-actions">
+              <button
+                type="button"
+                className="reset-button"
+                onClick={handleResetDay}
+              >
+                Reset Day
+              </button>
+              <button
+                type="button"
+                className="goals-toggle"
+                onClick={() => setGoalsOpen((current) => !current)}
+                aria-expanded={goalsOpen}
+              >
+                {goalsOpen ? "View summary" : "Set goals"}
+              </button>
+            </div>
           </div>
 
           {goalsOpen ? (
@@ -398,7 +414,7 @@ export default function Home() {
 
                     <label className="goals-field">
                       <span className="goals-label">
-                        Protein %{" "}
+                        Protein % {" "}
                         <span className="goals-derived">
                           ({caloriesNumber ? `${Math.round(proteinGrams)}g` : "—"})
                         </span>
@@ -420,7 +436,7 @@ export default function Home() {
 
                     <label className="goals-field">
                       <span className="goals-label">
-                        Carbs %{" "}
+                        Carbs % {" "}
                         <span className="goals-derived">
                           ({caloriesNumber ? `${Math.round(carbsGrams)}g` : "—"})
                         </span>
@@ -442,7 +458,7 @@ export default function Home() {
 
                     <label className="goals-field">
                       <span className="goals-label">
-                        Fat %{" "}
+                        Fat % {" "}
                         <span className="goals-derived">
                           ({caloriesNumber ? `${Math.round(fatGrams)}g` : "—"})
                         </span>
@@ -474,24 +490,8 @@ export default function Home() {
                 Macro percentages should add up to <strong>100%</strong>.
               </p>
             </div>
-          ) : null}
-        </section>
-
-        <section className="summary" aria-label="Daily summary">
-          <div className="summary-header">
-            <div>
-              <p className="eyebrow">Daily Summary</p>
-            </div>
-            <button
-              type="button"
-              className="reset-button"
-              onClick={handleResetDay}
-            >
-              Reset Day
-            </button>
-          </div>
-
-          <div className="summary-grid">
+          ) : (
+            <div className="summary-grid">
             <div className="summary-stat summary-stat--calories">
               <p className="summary-label macro macro--calories">Calories</p>
               <p className="summary-value macro macro--calories">
@@ -549,6 +549,7 @@ export default function Home() {
               </p>
             </div>
           </div>
+          )}
         </section>
 
         <div className="meal-list">

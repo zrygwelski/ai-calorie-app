@@ -298,11 +298,11 @@ input {
 }
 
 .reset-button {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 10px 14px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
-  color: #d2d9e6;
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(245, 247, 250, 0.78);
   font-size: 13px;
   font-weight: 560;
   letter-spacing: -0.01em;
@@ -316,8 +316,8 @@ input {
 }
 
 .reset-button:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.03));
-  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.12);
   color: #edf2f9;
   transform: translateY(-1px);
 }
@@ -457,16 +457,57 @@ input {
 
 .summary-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+  flex-wrap: nowrap;
+}
+
+.summary-header > div {
+  min-width: 0;
+}
+
+.summary-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.summary-actions button {
+  white-space: nowrap;
 }
 
 .summary-header h2 {
   margin: 0;
   font-size: 20px;
   letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .summary-header {
+    gap: 10px;
+  }
+
+  .summary-header h2 {
+    font-size: 18px;
+  }
+
+  .summary-actions {
+    gap: 8px;
+  }
+
+  .summary-actions button,
+  .reset-button,
+  .goals-toggle {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }
 
 .summary-hint {
