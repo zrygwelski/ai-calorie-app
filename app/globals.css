@@ -290,10 +290,36 @@ input {
   transform: translateY(-1px);
 }
 
-.goals-toggle:focus-visible {
+.goals-toggle:focus-visible,
+.reset-button:focus-visible {
   outline: none;
   border-color: rgba(132, 145, 255, 0.6);
   box-shadow: 0 0 0 4px rgba(97, 111, 255, 0.14);
+}
+
+.reset-button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+  color: #d2d9e6;
+  font-size: 13px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.reset-button:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.03));
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #edf2f9;
+  transform: translateY(-1px);
 }
 
 .goals-body {

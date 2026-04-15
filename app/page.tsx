@@ -29,7 +29,18 @@ type UserData = {
   entries: Record<MealSection, FoodEntry[]>;
 };
 
+type StoredData = {
+  activeUser: UserName;
+  usersData: Record<UserName, UserData>;
+};
+
+const STORAGE_KEY = "calorie-club-data";
+
 const users: UserName[] = ["Zach", "Suzie", "Munch", "Andrew", "Brian"];
+
+const initialUsersData: Record<UserName, UserData> = Object.fromEntries(
+  users.map((user) => [user, createBlankUserData()])
+) as Record<UserName, UserData>;
 
 function createBlankUserData(): UserData {
   return {
@@ -87,12 +98,42 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<UserName>("Zach");
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
-  const [usersData, setUsersData] = useState<Record<UserName, UserData>>(() =>
-    Object.fromEntries(users.map((user) => [user, createBlankUserData()])) as Record<
-      UserName,
-      UserData
-    >
+  const [usersData, setUsersData] = useState<Record<UserName, UserData>>(
+    () => initialUsersData
   );
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        return;
+      }
+
+      const parsed = JSON.parse(stored) as Partial<StoredData>;
+      const loadedActiveUser = users.includes(parsed.activeUser as UserName)
+        ? (parsed.activeUser as UserName)
+        : "Zach";
+      const loadedUsersData = parsed.usersData
+        ? ({ ...initialUsersData, ...parsed.usersData } as Record<UserName, UserData>)
+        : initialUsersData;
+
+      setActiveUser(loadedActiveUser);
+      setUsersData(loadedUsersData);
+    } catch {
+      // Ignore invalid storage data and continue with defaults
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ activeUser, usersData })
+      );
+    } catch {
+      // localStorage may be unavailable in some browser modes
+    }
+  }, [activeUser, usersData]);
 
   const currentUserData = usersData[activeUser];
   const { dailyGoals, entries } = currentUserData;
@@ -175,6 +216,22 @@ export default function Home() {
     updateEntries((current) => ({
       ...current,
       [meal]: current[meal].filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleResetDay = () => {
+    const confirmed = window.confirm(
+      `Reset today's meals for ${activeUser}? This will clear all current meal entries but keep your goals.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    updateEntries(() => ({
+      Breakfast: [],
+      Lunch: [],
+      Dinner: [],
+      Snacks: [],
     }));
   };
 
@@ -425,6 +482,13 @@ export default function Home() {
             <div>
               <p className="eyebrow">Daily Summary</p>
             </div>
+            <button
+              type="button"
+              className="reset-button"
+              onClick={handleResetDay}
+            >
+              Reset Day
+            </button>
           </div>
 
           <div className="summary-grid">
