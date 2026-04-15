@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type MealSection = "Breakfast" | "Lunch" | "Dinner" | "Snacks";
 
@@ -86,6 +86,7 @@ export default function Home() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<UserName>("Zach");
+  const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const [usersData, setUsersData] = useState<Record<UserName, UserData>>(() =>
     Object.fromEntries(users.map((user) => [user, createBlankUserData()])) as Record<
       UserName,
@@ -95,6 +96,30 @@ export default function Home() {
 
   const currentUserData = usersData[activeUser];
   const { dailyGoals, entries } = currentUserData;
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!menuContainerRef.current) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (!menuContainerRef.current.contains(target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+      return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }
+
+    return undefined;
+  }, [menuOpen]);
 
   const updateDailyGoals = (updater: (goals: DailyGoals) => DailyGoals) => {
     setUsersData((current) => ({
@@ -222,44 +247,52 @@ export default function Home() {
   return (
     <main className="page">
       <div className="app-shell">
-        <div className="user-bar">
-          <button
-            type="button"
-            className="user-menu-button"
-            aria-haspopup="true"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((current) => !current)}
-          >
-            <span className="user-menu-symbol" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </span>
-            <span className="user-menu-text">Users</span>
-          </button>
+        <div className="top-header">
+          <div className="branding">
+            <p className="branding-label">Calorie Club</p>
+          </div>
 
-          <p className="user-active">
-            Active: <strong>{activeUser}</strong>
-          </p>
+          <div className="user-bar" ref={menuContainerRef}>
+            <div className="user-menu-wrapper">
+              <button
+                type="button"
+                className="user-menu-button"
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                aria-label={`Switch user, currently ${activeUser}`}
+                onClick={() => setMenuOpen((current) => !current)}
+              >
+                <span className="user-menu-symbol" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span className="user-menu-text">{activeUser}</span>
+              </button>
 
-          {menuOpen ? (
-            <div className="user-menu-drawer" role="menu">
-              {users.map((user) => (
-                <button
-                  key={user}
-                  type="button"
-                  className={`user-menu-item ${user === activeUser ? "user-menu-item--active" : ""}`}
-                  onClick={() => {
-                    setActiveUser(user);
-                    setMenuOpen(false);
-                  }}
-                >
-                  {user}
-                </button>
-              ))}
+              {menuOpen ? (
+                <div className="user-menu-drawer" role="menu">
+                  {users.map((user) => (
+                    <button
+                      key={user}
+                      type="button"
+                      className={`user-menu-item ${user === activeUser ? "user-menu-item--active" : ""}`}
+                      onClick={() => {
+                        setActiveUser(user);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <span>{user}</span>
+                      {user === activeUser ? <span className="user-menu-check">✓</span> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          </div>
         </div>
+
+        {/* <p className="branding-tagline">No stress. Just progress.</p> */}
 
         <section className="goals" aria-label="Goals">
           <div className="goals-header">

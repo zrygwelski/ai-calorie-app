@@ -57,26 +57,68 @@ input {
   position: relative;
 }
 
-.user-bar {
-  position: relative;
+.top-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 24px;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
   flex-wrap: wrap;
+}
+
+.branding {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.branding-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(245, 247, 250, 0.92);
+}
+
+.branding-tagline {
+  margin: 0 0 20px;
+  color: rgba(199, 207, 221, 0.68);
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 300px;
+}
+
+.user-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.user-menu-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.user-menu-text {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .user-menu-button {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 11px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.035);
   color: #f5f7fa;
   cursor: pointer;
-  transition: background-color 140ms ease, transform 140ms ease;
+  transition: background-color 160ms ease, transform 160ms ease, border-color 160ms ease;
 }
 
 .user-menu-button:hover {
@@ -88,8 +130,8 @@ input {
   display: inline-flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 18px;
-  height: 14px;
+  width: 16px;
+  height: 12px;
 }
 
 .user-menu-symbol span {
@@ -101,43 +143,53 @@ input {
 }
 
 .user-menu-text {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .user-active {
   margin: 0;
-  color: rgba(199, 207, 221, 0.78);
-  font-size: 14px;
+  color: rgba(199, 207, 221, 0.72);
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .user-menu-drawer {
   position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  width: min(240px, 100%);
-  padding: 12px;
-  border-radius: 18px;
-  background: rgba(12, 14, 19, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(220px, 100%);
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(18, 20, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.22);
   z-index: 20;
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(-6px);
+  animation: dropdownFade 140ms ease-out forwards;
+  will-change: transform, opacity;
 }
 
 .user-menu-item {
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 9px 12px;
+  border-radius: 16px;
   background: transparent;
   color: #f5f7fa;
   border: none;
   text-align: left;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 140ms ease;
+  transition: background-color 140ms ease, color 140ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .user-menu-item:hover,
@@ -147,7 +199,31 @@ input {
 }
 
 .user-menu-item--active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.user-menu-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 12px;
+  line-height: 1;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .hero {
