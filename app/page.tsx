@@ -22,6 +22,32 @@ type DailyGoals = {
   fatPct: number;
 };
 
+type UserName = "Zach" | "Suzie" | "Munch" | "Andrew" | "Brian";
+
+type UserData = {
+  dailyGoals: DailyGoals;
+  entries: Record<MealSection, FoodEntry[]>;
+};
+
+const users: UserName[] = ["Zach", "Suzie", "Munch", "Andrew", "Brian"];
+
+function createBlankUserData(): UserData {
+  return {
+    dailyGoals: {
+      calories: "2000",
+      proteinPct: 30,
+      carbsPct: 40,
+      fatPct: 30,
+    },
+    entries: {
+      Breakfast: [],
+      Lunch: [],
+      Dinner: [],
+      Snacks: [],
+    },
+  };
+}
+
 function toNumber(value: unknown): number {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : 0;
@@ -58,18 +84,39 @@ export default function Home() {
   const [error, setError] = useState("");
   const [rawOutput, setRawOutput] = useState("");
   const [goalsOpen, setGoalsOpen] = useState(false);
-  const [dailyGoals, setDailyGoals] = useState<DailyGoals>({
-    calories: "2000",
-    proteinPct: 30,
-    carbsPct: 40,
-    fatPct: 30,
-  });
-  const [entries, setEntries] = useState<Record<MealSection, FoodEntry[]>>({
-    Breakfast: [],
-    Lunch: [],
-    Dinner: [],
-    Snacks: [],
-  });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeUser, setActiveUser] = useState<UserName>("Zach");
+  const [usersData, setUsersData] = useState<Record<UserName, UserData>>(() =>
+    Object.fromEntries(users.map((user) => [user, createBlankUserData()])) as Record<
+      UserName,
+      UserData
+    >
+  );
+
+  const currentUserData = usersData[activeUser];
+  const { dailyGoals, entries } = currentUserData;
+
+  const updateDailyGoals = (updater: (goals: DailyGoals) => DailyGoals) => {
+    setUsersData((current) => ({
+      ...current,
+      [activeUser]: {
+        ...current[activeUser],
+        dailyGoals: updater(current[activeUser].dailyGoals),
+      },
+    }));
+  };
+
+  const updateEntries = (
+    updater: (entries: Record<MealSection, FoodEntry[]>) => Record<MealSection, FoodEntry[]>
+  ) => {
+    setUsersData((current) => ({
+      ...current,
+      [activeUser]: {
+        ...current[activeUser],
+        entries: updater(current[activeUser].entries),
+      },
+    }));
+  };
 
   const totals = mealSections.reduce(
     (acc, meal) => {
@@ -100,7 +147,7 @@ export default function Home() {
   const remainingFat = goalsReady ? goalFatGrams - totals.fat : 0;
 
   const deleteEntry = (meal: MealSection, index: number) => {
-    setEntries((current) => ({
+    updateEntries((current) => ({
       ...current,
       [meal]: current[meal].filter((_, i) => i !== index),
     }));
@@ -154,11 +201,11 @@ export default function Home() {
             fat: item.fat ?? "-",
           }));
         
-          setEntries((current) => ({
+          updateEntries((current) => ({
             ...current,
             [activeMeal]: [...current[activeMeal], ...newEntries],
           }));
-        
+
           setInput("");
           setActiveMeal(null);
         } catch {
@@ -175,6 +222,45 @@ export default function Home() {
   return (
     <main className="page">
       <div className="app-shell">
+        <div className="user-bar">
+          <button
+            type="button"
+            className="user-menu-button"
+            aria-haspopup="true"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((current) => !current)}
+          >
+            <span className="user-menu-symbol" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            <span className="user-menu-text">Users</span>
+          </button>
+
+          <p className="user-active">
+            Active: <strong>{activeUser}</strong>
+          </p>
+
+          {menuOpen ? (
+            <div className="user-menu-drawer" role="menu">
+              {users.map((user) => (
+                <button
+                  key={user}
+                  type="button"
+                  className={`user-menu-item ${user === activeUser ? "user-menu-item--active" : ""}`}
+                  onClick={() => {
+                    setActiveUser(user);
+                    setMenuOpen(false);
+                  }}
+                >
+                  {user}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
         <section className="goals" aria-label="Goals">
           <div className="goals-header">
             <div>
@@ -210,7 +296,7 @@ export default function Home() {
                         className="goals-input"
                         value={dailyGoals.calories}
                         onChange={(e) =>
-                          setDailyGoals((current) => ({
+                          updateDailyGoals((current) => ({
                             ...current,
                             calories: e.target.value,
                           }))
@@ -234,7 +320,7 @@ export default function Home() {
                         max={100}
                         value={dailyGoals.proteinPct}
                         onChange={(e) =>
-                          setDailyGoals((current) => ({
+                          updateDailyGoals((current) => ({
                             ...current,
                             proteinPct: clampInt(Number(e.target.value), 0, 100),
                           }))
@@ -256,7 +342,7 @@ export default function Home() {
                         max={100}
                         value={dailyGoals.carbsPct}
                         onChange={(e) =>
-                          setDailyGoals((current) => ({
+                          updateDailyGoals((current) => ({
                             ...current,
                             carbsPct: clampInt(Number(e.target.value), 0, 100),
                           }))
@@ -278,7 +364,7 @@ export default function Home() {
                         max={100}
                         value={dailyGoals.fatPct}
                         onChange={(e) =>
-                          setDailyGoals((current) => ({
+                          updateDailyGoals((current) => ({
                             ...current,
                             fatPct: clampInt(Number(e.target.value), 0, 100),
                           }))
