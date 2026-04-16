@@ -29,6 +29,16 @@ type GoalDraft = {
   fatPct: string;
 };
 
+type EstimateDraft = {
+  sex: "male" | "female";
+  age: string;
+  feet: string;
+  inches: string;
+  pounds: string;
+  activity: "sedentary" | "light" | "moderate" | "active" | "very-active";
+  goal: "lose" | "maintain" | "gain";
+};
+
 type UserName = "Zach" | "Suzie" | "Munch" | "Andrew" | "Brian";
 
 type UserData = {
@@ -85,6 +95,86 @@ function normalizePercentageInput(value: string): number {
   return Number.isFinite(parsed) ? clampInt(parsed, 0, 100) : 0;
 }
 
+function createEstimateDraft(): EstimateDraft {
+  return {
+    sex: "male",
+    age: "30",
+    feet: "5",
+    inches: "8",
+    pounds: "165",
+    activity: "moderate",
+    goal: "maintain",
+  };
+}
+
+function heightToCm(feet: string, inches: string): number {
+  const parsedFeet = Number(feet.trim());
+  const parsedInches = Number(inches.trim());
+  if (!Number.isFinite(parsedFeet) || !Number.isFinite(parsedInches)) {
+    return 0;
+  }
+  return parsedFeet * 30.48 + parsedInches * 2.54;
+}
+
+function poundsToKg(pounds: string): number {
+  const parsed = Number(pounds.trim());
+  return Number.isFinite(parsed) ? parsed * 0.45359237 : 0;
+}
+
+function bmrEstimate(draft: EstimateDraft): number {
+  const age = Number(draft.age);
+  const height = heightToCm(draft.feet, draft.inches);
+  const weight = poundsToKg(draft.pounds);
+
+  if (!Number.isFinite(age) || age <= 0 || height <= 0 || weight <= 0) {
+    return 0;
+  }
+
+  const base = 10 * weight + 6.25 * height - 5 * age;
+  const sexModifier = draft.sex === "male" ? 5 : -161;
+  return base + sexModifier;
+}
+
+function activityFactor(level: EstimateDraft["activity"]): number {
+  switch (level) {
+    case "sedentary":
+      return 1.2;
+    case "light":
+      return 1.375;
+    case "moderate":
+      return 1.55;
+    case "active":
+      return 1.725;
+    case "very-active":
+      return 1.9;
+    default:
+      return 1.2;
+  }
+}
+
+function goalCaloriesAdjustment(goal: EstimateDraft["goal"]): number {
+  switch (goal) {
+    case "lose":
+      return -300;
+    case "gain":
+      return 300;
+    default:
+      return 0;
+  }
+}
+
+function estimateMacros(goal: EstimateDraft["goal"]) {
+  if (goal === "lose") {
+    return { proteinPct: 30, carbsPct: 35, fatPct: 35 };
+  }
+
+  if (goal === "gain") {
+    return { proteinPct: 25, carbsPct: 50, fatPct: 25 };
+  }
+
+  return { proteinPct: 25, carbsPct: 45, fatPct: 30 };
+}
+
 function toNumber(value: unknown): number {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : 0;
@@ -123,6 +213,10 @@ export default function Home() {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState<GoalDraft>(() =>
     createGoalDraft(initialUsersData["Zach"].dailyGoals)
+  );
+  const [estimateOpen, setEstimateOpen] = useState(false);
+  const [estimateDraft, setEstimateDraft] = useState<EstimateDraft>(() =>
+    createEstimateDraft()
   );
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<UserName>("Zach");
@@ -187,10 +281,12 @@ export default function Home() {
         fatPct: normalizedFat,
       }));
       setGoalsOpen(false);
+      setEstimateOpen(false);
       return;
     }
 
     setGoalDraft(createGoalDraft(dailyGoals));
+    setEstimateDraft(createEstimateDraft());
     setGoalsOpen(true);
   };
 
@@ -427,6 +523,15 @@ export default function Home() {
               >
                 Reset Day
               </button>
+              {goalsOpen ? (
+                <button
+                  type="button"
+                  className="goals-toggle"
+                  onClick={() => setEstimateOpen(true)}
+                >
+                  Estimate my goals
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="goals-toggle"
@@ -604,12 +709,201 @@ export default function Home() {
           </div>
 
           {goalsOpen ? (
-            <p className={`summary-hint ${goalsPctOk ? "" : "summary-subvalue--over"}`}>
-              Macro percentages should add up to <strong>100%</strong>.
-            </p>
+            <>
+              <p className={`summary-hint ${goalsPctOk ? "" : "summary-subvalue--over"}`}>
+                Macro percentages should add up to <strong>100%</strong>.
+              </p>
+              <p className="summary-footnote">
+                Want a quick starting point? Estimate your goals using your personal details.
+              </p>
+            </>
           ) : null}
         </section>
 
+        {estimateOpen ? (
+          <div className="modal-backdrop" role="presentation" onClick={() => setEstimateOpen(false)}>
+            <div
+              className="modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="estimate-modal-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <div>
+                  <p className="modal-eyebrow">Estimate goals</p>
+                  <h2 id="estimate-modal-title">Calculate a goal plan</h2>
+                </div>
+                <button
+                  type="button"
+                  className="close-button"
+                  onClick={() => setEstimateOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="estimate-grid">
+                <label className="goals-field">
+                  <span className="goals-label">Sex</span>
+                  <select
+                    className="meal-input"
+                    value={estimateDraft.sex}
+                    onChange={(e) =>
+                      setEstimateDraft((current) => ({
+                        ...current,
+                        sex: e.target.value as EstimateDraft["sex"],
+                      }))
+                    }
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </label>
+
+                <label className="goals-field">
+                  <span className="goals-label">Age</span>
+                  <input
+                    className="meal-input"
+                    type="number"
+                    min={10}
+                    max={120}
+                    value={estimateDraft.age}
+                    onChange={(e) =>
+                      setEstimateDraft((current) => ({
+                        ...current,
+                        age: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="goals-field">
+                  <span className="goals-label">Height</span>
+                  <div className="estimate-height-row">
+                    <input
+                      className="meal-input"
+                      type="number"
+                      min={3}
+                      max={8}
+                      value={estimateDraft.feet}
+                      onChange={(e) =>
+                        setEstimateDraft((current) => ({
+                          ...current,
+                          feet: e.target.value,
+                        }))
+                      }
+                      aria-label="Height in feet"
+                      placeholder="ft"
+                    />
+                    <input
+                      className="meal-input"
+                      type="number"
+                      min={0}
+                      max={11}
+                      value={estimateDraft.inches}
+                      onChange={(e) =>
+                        setEstimateDraft((current) => ({
+                          ...current,
+                          inches: e.target.value,
+                        }))
+                      }
+                      aria-label="Height in inches"
+                      placeholder="in"
+                    />
+                  </div>
+                </label>
+
+                <label className="goals-field">
+                  <span className="goals-label">Weight (lb)</span>
+                  <input
+                    className="meal-input"
+                    type="number"
+                    min={70}
+                    max={400}
+                    value={estimateDraft.pounds}
+                    onChange={(e) =>
+                      setEstimateDraft((current) => ({
+                        ...current,
+                        pounds: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="goals-field">
+                  <span className="goals-label">Activity level</span>
+                  <select
+                    className="meal-input"
+                    value={estimateDraft.activity}
+                    onChange={(e) =>
+                      setEstimateDraft((current) => ({
+                        ...current,
+                        activity: e.target.value as EstimateDraft["activity"],
+                      }))
+                    }
+                  >
+                    <option value="sedentary">Sedentary</option>
+                    <option value="light">Lightly active</option>
+                    <option value="moderate">Moderately active</option>
+                    <option value="active">Very active</option>
+                    <option value="very-active">Extra active</option>
+                  </select>
+                </label>
+
+                <label className="goals-field">
+                  <span className="goals-label">Goal</span>
+                  <select
+                    className="meal-input"
+                    value={estimateDraft.goal}
+                    onChange={(e) =>
+                      setEstimateDraft((current) => ({
+                        ...current,
+                        goal: e.target.value as EstimateDraft["goal"],
+                      }))
+                    }
+                  >
+                    <option value="lose">Lose weight</option>
+                    <option value="maintain">Maintain weight</option>
+                    <option value="gain">Gain weight</option>
+                  </select>
+                </label>
+              </div>
+
+              <p className="summary-footnote">
+                These are estimates only. Use them as a starting point, not medical advice.
+              </p>
+
+              <button
+                type="button"
+                className="submit-button"
+                onClick={() => {
+                  const bmr = bmrEstimate(estimateDraft);
+                  const maintenance = bmr * activityFactor(estimateDraft.activity);
+                  const targetCalories = Math.max(0, Math.round(maintenance + goalCaloriesAdjustment(estimateDraft.goal)));
+                  const macros = estimateMacros(estimateDraft.goal);
+
+                  updateDailyGoals(() => ({
+                    calories: String(targetCalories),
+                    proteinPct: macros.proteinPct,
+                    carbsPct: macros.carbsPct,
+                    fatPct: macros.fatPct,
+                  }));
+                  setGoalDraft({
+                    calories: String(targetCalories),
+                    proteinPct: String(macros.proteinPct),
+                    carbsPct: String(macros.carbsPct),
+                    fatPct: String(macros.fatPct),
+                  });
+                  setEstimateOpen(false);
+                }}
+              >
+                Apply estimate
+              </button>
+            </div>
+          </div>
+        ) : null}
+        
         <div className="meal-list">
           {mealSections.map((meal) => (
             <section

@@ -407,6 +407,25 @@ input {
   line-height: 1.6;
 }
 
+.summary-footnote {
+  margin: 12px 0 0;
+  color: #8b92a7;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.estimate-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.estimate-height-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .hero h1 {
   margin: 0;
   font-size: clamp(32px, 5vw, 48px);
