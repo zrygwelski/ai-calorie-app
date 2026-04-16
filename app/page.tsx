@@ -22,6 +22,13 @@ type DailyGoals = {
   fatPct: number;
 };
 
+type GoalDraft = {
+  calories: string;
+  proteinPct: string;
+  carbsPct: string;
+  fatPct: string;
+};
+
 type UserName = "Zach" | "Suzie" | "Munch" | "Andrew" | "Brian";
 
 type UserData = {
@@ -57,6 +64,25 @@ function createBlankUserData(): UserData {
       Snacks: [],
     },
   };
+}
+
+function createGoalDraft(goals: DailyGoals): GoalDraft {
+  return {
+    calories: goals.calories,
+    proteinPct: String(goals.proteinPct),
+    carbsPct: String(goals.carbsPct),
+    fatPct: String(goals.fatPct),
+  };
+}
+
+function normalizeCaloriesInput(value: string): string {
+  const parsed = Number(value.replace(/,/g, "").trim());
+  return Number.isFinite(parsed) ? String(Math.max(0, Math.round(parsed))) : "0";
+}
+
+function normalizePercentageInput(value: string): number {
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) ? clampInt(parsed, 0, 100) : 0;
 }
 
 function toNumber(value: unknown): number {
@@ -95,6 +121,9 @@ export default function Home() {
   const [error, setError] = useState("");
   const [rawOutput, setRawOutput] = useState("");
   const [goalsOpen, setGoalsOpen] = useState(false);
+  const [goalDraft, setGoalDraft] = useState<GoalDraft>(() =>
+    createGoalDraft(initialUsersData["Zach"].dailyGoals)
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<UserName>("Zach");
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
@@ -143,6 +172,27 @@ export default function Home() {
 
   const currentUserData = usersData[activeUser];
   const { dailyGoals, entries } = currentUserData;
+
+  const toggleGoalsOpen = () => {
+    if (goalsOpen) {
+      const normalizedCalories = normalizeCaloriesInput(goalDraft.calories);
+      const normalizedProtein = normalizePercentageInput(goalDraft.proteinPct);
+      const normalizedCarbs = normalizePercentageInput(goalDraft.carbsPct);
+      const normalizedFat = normalizePercentageInput(goalDraft.fatPct);
+
+      updateDailyGoals(() => ({
+        calories: normalizedCalories,
+        proteinPct: normalizedProtein,
+        carbsPct: normalizedCarbs,
+        fatPct: normalizedFat,
+      }));
+      setGoalsOpen(false);
+      return;
+    }
+
+    setGoalDraft(createGoalDraft(dailyGoals));
+    setGoalsOpen(true);
+  };
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -204,16 +254,21 @@ export default function Home() {
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
+  const draftCalories = goalsOpen ? toNumber(goalDraft.calories) : toNumber(dailyGoals.calories);
+  const draftProteinPct = goalsOpen ? toNumber(goalDraft.proteinPct) : dailyGoals.proteinPct;
+  const draftCarbsPct = goalsOpen ? toNumber(goalDraft.carbsPct) : dailyGoals.carbsPct;
+  const draftFatPct = goalsOpen ? toNumber(goalDraft.fatPct) : dailyGoals.fatPct;
+
   const goalsCalories = toNumber(dailyGoals.calories);
-  const goalsPctTotal = dailyGoals.proteinPct + dailyGoals.carbsPct + dailyGoals.fatPct;
+  const goalsPctTotal = draftProteinPct + draftCarbsPct + draftFatPct;
   const goalsPctOk = goalsPctTotal === 100;
-  const goalsReady = goalsCalories > 0 && goalsPctOk;
+  const goalsReady = draftCalories > 0 && goalsPctOk;
 
-  const goalProteinGrams = goalsReady ? (goalsCalories * (dailyGoals.proteinPct / 100)) / 4 : 0;
-  const goalCarbsGrams = goalsReady ? (goalsCalories * (dailyGoals.carbsPct / 100)) / 4 : 0;
-  const goalFatGrams = goalsReady ? (goalsCalories * (dailyGoals.fatPct / 100)) / 9 : 0;
+  const goalProteinGrams = goalsReady ? (draftCalories * (draftProteinPct / 100)) / 4 : 0;
+  const goalCarbsGrams = goalsReady ? (draftCalories * (draftCarbsPct / 100)) / 4 : 0;
+  const goalFatGrams = goalsReady ? (draftCalories * (draftFatPct / 100)) / 9 : 0;
 
-  const remainingCalories = goalsReady ? goalsCalories - totals.calories : 0;
+  const remainingCalories = goalsReady ? draftCalories - totals.calories : 0;
   const remainingProtein = goalsReady ? goalProteinGrams - totals.protein : 0;
   const remainingCarbs = goalsReady ? goalCarbsGrams - totals.carbs : 0;
   const remainingFat = goalsReady ? goalFatGrams - totals.fat : 0;
@@ -375,181 +430,184 @@ export default function Home() {
               <button
                 type="button"
                 className="goals-toggle"
-                onClick={() => setGoalsOpen((current) => !current)}
+                onClick={toggleGoalsOpen}
                 aria-expanded={goalsOpen}
               >
-                {goalsOpen ? "View summary" : "Set goals"}
+                {goalsOpen ? "Done" : "Set goals"}
               </button>
             </div>
           </div>
 
-          {goalsOpen ? (
-            <div className="goals-body">
-              {(() => {
-                const totalPct =
-                  dailyGoals.proteinPct + dailyGoals.carbsPct + dailyGoals.fatPct;
-                const pctOk = totalPct === 100;
-                const caloriesNumber = toNumber(dailyGoals.calories);
-                const proteinGrams = (caloriesNumber * (dailyGoals.proteinPct / 100)) / 4;
-                const carbsGrams = (caloriesNumber * (dailyGoals.carbsPct / 100)) / 4;
-                const fatGrams = (caloriesNumber * (dailyGoals.fatPct / 100)) / 9;
-
-                return (
-                  <div className="goals-daily">
-                    <label className="goals-field">
-                      <span className="goals-label">Calories</span>
-                      <input
-                        className="goals-input"
-                        value={dailyGoals.calories}
-                        onChange={(e) =>
-                          updateDailyGoals((current) => ({
-                            ...current,
-                            calories: e.target.value,
-                          }))
-                        }
-                        placeholder="e.g. 2200"
-                        inputMode="numeric"
-                      />
-                    </label>
-
-                    <label className="goals-field">
-                      <span className="goals-label">
-                        Protein % {" "}
-                        <span className="goals-derived">
-                          ({caloriesNumber ? `${Math.round(proteinGrams)}g` : "—"})
-                        </span>
-                      </span>
-                      <input
-                        className="goals-input"
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={dailyGoals.proteinPct}
-                        onChange={(e) =>
-                          updateDailyGoals((current) => ({
-                            ...current,
-                            proteinPct: clampInt(Number(e.target.value), 0, 100),
-                          }))
-                        }
-                      />
-                    </label>
-
-                    <label className="goals-field">
-                      <span className="goals-label">
-                        Carbs % {" "}
-                        <span className="goals-derived">
-                          ({caloriesNumber ? `${Math.round(carbsGrams)}g` : "—"})
-                        </span>
-                      </span>
-                      <input
-                        className="goals-input"
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={dailyGoals.carbsPct}
-                        onChange={(e) =>
-                          updateDailyGoals((current) => ({
-                            ...current,
-                            carbsPct: clampInt(Number(e.target.value), 0, 100),
-                          }))
-                        }
-                      />
-                    </label>
-
-                    <label className="goals-field">
-                      <span className="goals-label">
-                        Fat % {" "}
-                        <span className="goals-derived">
-                          ({caloriesNumber ? `${Math.round(fatGrams)}g` : "—"})
-                        </span>
-                      </span>
-                      <input
-                        className="goals-input"
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={dailyGoals.fatPct}
-                        onChange={(e) =>
-                          updateDailyGoals((current) => ({
-                            ...current,
-                            fatPct: clampInt(Number(e.target.value), 0, 100),
-                          }))
-                        }
-                      />
-                    </label>
-
-                    <div className={`goals-total ${pctOk ? "" : "goals-total--warn"}`}>
-                      <p className="goals-total-value">{totalPct}%</p>
-                      <p className="goals-total-hint">{pctOk ? "OK" : "Must be 100"}</p>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <p className="goals-footnote">
-                Macro percentages should add up to <strong>100%</strong>.
-              </p>
-            </div>
-          ) : (
-            <div className="summary-grid">
+          <div className="summary-grid">
             <div className="summary-stat summary-stat--calories">
               <p className="summary-label macro macro--calories">Calories</p>
               <p className="summary-value macro macro--calories">
-                {Math.round(totals.calories)}{" "}
-                <span className={`summary-goal-inline ${goalsReady ? "" : "summary-goal-inline--muted"}`}>
-                  ({goalsReady ? Math.round(goalsCalories) : "—"})
-                </span>
+                {goalsOpen ? (
+                  <input
+                    className="summary-input"
+                    type="number"
+                    min={0}
+                    value={goalDraft.calories}
+                    onChange={(e) =>
+                      setGoalDraft((current) => ({
+                        ...current,
+                        calories: e.target.value,
+                      }))
+                    }
+                    aria-label="Daily calorie goal"
+                    inputMode="numeric"
+                  />
+                ) : (
+                  <>
+                    {Math.round(totals.calories)}{" "}
+                    <span className={`summary-goal-inline ${goalsReady ? "" : "summary-goal-inline--muted"}`}>
+                      ({goalsReady ? Math.round(goalsCalories) : "—"})
+                    </span>
+                  </>
+                )}
               </p>
               <p
                 className={`summary-subvalue ${goalsReady ? "" : "summary-subvalue--muted"} ${goalsReady && remainingCalories < 0 ? "summary-subvalue--over" : ""}`}
               >
-                {goalsReady ? `${Math.round(remainingCalories)} remaining` : "Set goals to see remaining"}
+                {goalsOpen
+                  ? goalsReady
+                    ? `${Math.round(remainingCalories)} remaining`
+                    : "Update goals to preview remaining"
+                  : goalsReady
+                  ? `${Math.round(remainingCalories)} remaining`
+                  : "Set goals to see remaining"}
               </p>
             </div>
+
             <div className="summary-stat summary-stat--protein">
               <p className="summary-label macro macro--protein">Protein</p>
               <p className="summary-value macro macro--protein">
-                {Math.round(totals.protein)}g{" "}
-                <span className={`summary-goal-inline ${goalsReady ? "" : "summary-goal-inline--muted"}`}>
-                  ({goalsReady ? `${Math.round(goalProteinGrams)}g` : "—"})
-                </span>
+                {goalsOpen ? (
+                  <span className="summary-input-inline">
+                    <input
+                      className="summary-input summary-input--pct"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={goalDraft.proteinPct}
+                      onChange={(e) =>
+                        setGoalDraft((current) => ({
+                          ...current,
+                          proteinPct: e.target.value,
+                        }))
+                      }
+                      aria-label="Protein percentage goal"
+                    />
+                    %
+                  </span>
+                ) : (
+                  <>
+                    {Math.round(totals.protein)}g{" "}
+                    <span className={`summary-goal-inline ${goalsReady ? "" : "summary-goal-inline--muted"}`}>
+                      ({goalsReady ? `${Math.round(goalProteinGrams)}g` : "—"})
+                    </span>
+                  </>
+                )}
               </p>
               <p
                 className={`summary-subvalue ${goalsReady ? "" : "summary-subvalue--muted"} ${goalsReady && remainingProtein < 0 ? "summary-subvalue--over" : ""}`}
               >
-                {goalsReady ? `${Math.round(remainingProtein)}g remaining` : "—"}
+                {goalsOpen
+                  ? `${Math.round(goalProteinGrams)}g`
+                  : goalsReady
+                  ? `${Math.round(remainingProtein)}g remaining`
+                  : "—"}
               </p>
             </div>
+
             <div className="summary-stat summary-stat--carbs">
               <p className="summary-label macro macro--carbs">Carbs</p>
               <p className="summary-value macro macro--carbs">
-                {Math.round(totals.carbs)}g{" "}
-                <span className={`summary-goal-inline ${goalsReady ? "" : "summary-goal-inline--muted"}`}>
-                  ({goalsReady ? `${Math.round(goalCarbsGrams)}g` : "—"})
-                </span>
+                {goalsOpen ? (
+                  <span className="summary-input-inline">
+                    <input
+                      className="summary-input summary-input--pct"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={goalDraft.carbsPct}
+                      onChange={(e) =>
+                        setGoalDraft((current) => ({
+                          ...current,
+                          carbsPct: e.target.value,
+                        }))
+                      }
+                      aria-label="Carbs percentage goal"
+                    />
+                    %
+                  </span>
+                ) : (
+                  <>
+                    {Math.round(totals.carbs)}g{" "}
+                    <span className={`summary-goal-inline ${goalsReady ? "" : "summary-goal-inline--muted"}`}>
+                      ({goalsReady ? `${Math.round(goalCarbsGrams)}g` : "—"})
+                    </span>
+                  </>
+                )}
               </p>
               <p
                 className={`summary-subvalue ${goalsReady ? "" : "summary-subvalue--muted"} ${goalsReady && remainingCarbs < 0 ? "summary-subvalue--over" : ""}`}
               >
-                {goalsReady ? `${Math.round(remainingCarbs)}g remaining` : "—"}
+                {goalsOpen
+                  ? `${Math.round(goalCarbsGrams)}g`
+                  : goalsReady
+                  ? `${Math.round(remainingCarbs)}g remaining`
+                  : "—"}
               </p>
             </div>
+
             <div className="summary-stat summary-stat--fat">
               <p className="summary-label macro macro--fat">Fat</p>
               <p className="summary-value macro macro--fat">
-                {Math.round(totals.fat)}g{" "}
-                <span className={`summary-goal-inline ${goalsReady ? "" : "summary-goal-inline--muted"}`}>
-                  ({goalsReady ? `${Math.round(goalFatGrams)}g` : "—"})
-                </span>
+                {goalsOpen ? (
+                  <span className="summary-input-inline">
+                    <input
+                      className="summary-input summary-input--pct"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={goalDraft.fatPct}
+                      onChange={(e) =>
+                        setGoalDraft((current) => ({
+                          ...current,
+                          fatPct: e.target.value,
+                        }))
+                      }
+                      aria-label="Fat percentage goal"
+                    />
+                    %
+                  </span>
+                ) : (
+                  <>
+                    {Math.round(totals.fat)}g{" "}
+                    <span className={`summary-goal-inline ${goalsReady ? "" : "summary-goal-inline--muted"}`}>
+                      ({goalsReady ? `${Math.round(goalFatGrams)}g` : "—"})
+                    </span>
+                  </>
+                )}
               </p>
               <p
                 className={`summary-subvalue ${goalsReady ? "" : "summary-subvalue--muted"} ${goalsReady && remainingFat < 0 ? "summary-subvalue--over" : ""}`}
               >
-                {goalsReady ? `${Math.round(remainingFat)}g remaining` : "—"}
+                {goalsOpen
+                  ? `${Math.round(goalFatGrams)}g`
+                  : goalsReady
+                  ? `${Math.round(remainingFat)}g remaining`
+                  : "—"}
               </p>
             </div>
           </div>
-          )}
+
+          {goalsOpen ? (
+            <p className={`summary-hint ${goalsPctOk ? "" : "summary-subvalue--over"}`}>
+              Macro percentages should add up to <strong>100%</strong>.
+            </p>
+          ) : null}
         </section>
 
         <div className="meal-list">

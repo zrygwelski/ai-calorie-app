@@ -594,6 +594,42 @@ input {
   letter-spacing: -0.02em;
 }
 
+.summary-input {
+  width: 100%;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f7fa;
+  font: inherit;
+  font-size: 1em;
+  font-weight: 700;
+  text-align: right;
+}
+
+.summary-input:focus-visible {
+  outline: none;
+  border-color: rgba(132, 145, 255, 0.6);
+  box-shadow: 0 0 0 4px rgba(97, 111, 255, 0.14);
+}
+
+.summary-input-inline {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.summary-input--calories {
+  min-width: 130px;
+}
+
+.summary-input--pct {
+  width: 4.5ch;
+  min-width: 4.5ch;
+}
+
 .summary-subvalue {
   margin: 8px 0 0;
   font-size: 12px;
