@@ -62,38 +62,6 @@ input {
   position: relative;
 }
 
-.top-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
-}
-
-.branding {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.branding-label {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(59, 52, 46, 0.92);
-}
-
-.branding-tagline {
-  margin: 0 0 20px;
-  color: rgba(117, 106, 97, 0.72);
-  font-size: 13px;
-  line-height: 1.4;
-  max-width: 300px;
-}
-
 .hero {
   max-width: 640px;
 }

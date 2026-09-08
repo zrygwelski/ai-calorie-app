@@ -427,16 +427,6 @@ export default function Home() {
   return (
     <main className="page">
       <div className="app-shell">
-        <div className="top-header">
-          <div className="branding">
-            <p className="branding-label">Calorie Club</p>
-          </div>
-        </div>
-
-        {/* <p className="branding-tagline">No stress. Just progress.</p> */}
-
-        {/* <p className="branding-tagline">No stress. Just progress.</p> */}
-
         <section className="summary" aria-label="Daily summary">
           <div className="summary-header">
             <div>
