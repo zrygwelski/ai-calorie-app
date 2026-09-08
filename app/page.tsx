@@ -39,25 +39,12 @@ type EstimateDraft = {
   goal: "lose" | "maintain" | "gain";
 };
 
-type UserName = "Zach" | "Suzie" | "Munch" | "Andrew" | "Brian";
-
 type UserData = {
   dailyGoals: DailyGoals;
   entries: Record<MealSection, FoodEntry[]>;
 };
 
-type StoredData = {
-  activeUser: UserName;
-  usersData: Record<UserName, UserData>;
-};
-
 const STORAGE_KEY = "calorie-club-data";
-
-const users: UserName[] = ["Zach", "Suzie", "Munch", "Andrew", "Brian"];
-
-const initialUsersData: Record<UserName, UserData> = Object.fromEntries(
-  users.map((user) => [user, createBlankUserData()])
-) as Record<UserName, UserData>;
 
 function createBlankUserData(): UserData {
   return {
@@ -214,16 +201,18 @@ export default function Home() {
   const isSubmittingRef = useRef(false);
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState<GoalDraft>(() =>
-    createGoalDraft(initialUsersData["Zach"].dailyGoals)
+    createGoalDraft(createBlankUserData().dailyGoals)
   );
   const [estimateOpen, setEstimateOpen] = useState(false);
   const [estimateDraft, setEstimateDraft] = useState<EstimateDraft>(() =>
     createEstimateDraft()
   );
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [activeUser, setActiveUser] = useState<UserName>("Zach");
-  const menuContainerRef = useRef<HTMLDivElement | null>(null);
-  const [usersData, setUsersData] = useState<Record<UserName, UserData>>(initialUsersData);
+  const [dailyGoals, setDailyGoals] = useState<DailyGoals>(
+    () => createBlankUserData().dailyGoals
+  );
+  const [entries, setEntries] = useState<Record<MealSection, FoodEntry[]>>(
+    () => createBlankUserData().entries
+  );
   const hasMounted = useRef(false);
 
   useEffect(() => {
@@ -234,16 +223,28 @@ export default function Home() {
         return;
       }
 
-      const parsed = JSON.parse(stored) as Partial<StoredData>;
-      const loadedActiveUser = users.includes(parsed.activeUser as UserName)
-        ? (parsed.activeUser as UserName)
-        : "Zach";
-      const loadedUsersData = parsed.usersData
-        ? ({ ...initialUsersData, ...parsed.usersData } as Record<UserName, UserData>)
-        : initialUsersData;
+      const parsed = JSON.parse(stored) as {
+        dailyGoals?: DailyGoals;
+        entries?: Record<MealSection, FoodEntry[]>;
+        activeUser?: string;
+        usersData?: Record<string, UserData>;
+      };
 
-      setActiveUser(loadedActiveUser);
-      setUsersData(loadedUsersData);
+      // Legacy storage (pre multi-user removal) nested data under
+      // { activeUser, usersData }. Migrate whichever profile was active
+      // on this device so existing history isn't lost.
+      const legacyUserData =
+        parsed.activeUser && parsed.usersData
+          ? parsed.usersData[parsed.activeUser]
+          : undefined;
+      const loaded = legacyUserData ?? parsed;
+
+      if (loaded.dailyGoals) {
+        setDailyGoals(loaded.dailyGoals);
+      }
+      if (loaded.entries) {
+        setEntries(loaded.entries);
+      }
     } catch {
       // Ignore invalid storage data and continue with defaults
     } finally {
@@ -257,17 +258,11 @@ export default function Home() {
     }
 
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ activeUser, usersData })
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ dailyGoals, entries }));
     } catch {
       // localStorage may be unavailable in some browser modes
     }
-  }, [activeUser, usersData]);
-
-  const currentUserData = usersData[activeUser];
-  const { dailyGoals, entries } = currentUserData;
+  }, [dailyGoals, entries]);
 
   const toggleGoalsOpen = () => {
     if (goalsOpen) {
@@ -292,50 +287,14 @@ export default function Home() {
     setGoalsOpen(true);
   };
 
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (!menuContainerRef.current) {
-        return;
-      }
-
-      const target = event.target;
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (!menuContainerRef.current.contains(target)) {
-        setMenuOpen(false);
-      }
-    };
-
-    if (menuOpen) {
-      document.addEventListener("mousedown", handleOutsideClick);
-      return () => document.removeEventListener("mousedown", handleOutsideClick);
-    }
-
-    return undefined;
-  }, [menuOpen]);
-
   const updateDailyGoals = (updater: (goals: DailyGoals) => DailyGoals) => {
-    setUsersData((current) => ({
-      ...current,
-      [activeUser]: {
-        ...current[activeUser],
-        dailyGoals: updater(current[activeUser].dailyGoals),
-      },
-    }));
+    setDailyGoals(updater);
   };
 
   const updateEntries = (
     updater: (entries: Record<MealSection, FoodEntry[]>) => Record<MealSection, FoodEntry[]>
   ) => {
-    setUsersData((current) => ({
-      ...current,
-      [activeUser]: {
-        ...current[activeUser],
-        entries: updater(current[activeUser].entries),
-      },
-    }));
+    setEntries(updater);
   };
 
   const totals = mealSections.reduce(
@@ -380,7 +339,7 @@ export default function Home() {
 
   const handleResetDay = () => {
     const confirmed = window.confirm(
-      `Reset today's meals for ${activeUser}? This will clear all current meal entries but keep your goals.`
+      "Reset today's meals? This will clear all current meal entries but keep your goals."
     );
     if (!confirmed) {
       return;
@@ -471,45 +430,6 @@ export default function Home() {
         <div className="top-header">
           <div className="branding">
             <p className="branding-label">Calorie Club</p>
-          </div>
-
-          <div className="user-bar" ref={menuContainerRef}>
-            <div className="user-menu-wrapper">
-              <button
-                type="button"
-                className="user-menu-button"
-                aria-haspopup="true"
-                aria-expanded={menuOpen}
-                aria-label={`Switch user, currently ${activeUser}`}
-                onClick={() => setMenuOpen((current) => !current)}
-              >
-                <span className="user-menu-symbol" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
-                <span className="user-menu-text">{activeUser}</span>
-              </button>
-
-              {menuOpen ? (
-                <div className="user-menu-drawer" role="menu">
-                  {users.map((user) => (
-                    <button
-                      key={user}
-                      type="button"
-                      className={`user-menu-item ${user === activeUser ? "user-menu-item--active" : ""}`}
-                      onClick={() => {
-                        setActiveUser(user);
-                        setMenuOpen(false);
-                      }}
-                    >
-                      <span>{user}</span>
-                      {user === activeUser ? <span className="user-menu-check">✓</span> : null}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
           </div>
         </div>
 
@@ -920,7 +840,6 @@ export default function Home() {
               <div className="meal-header">
                 <div>
                   <h2>{meal}</h2>
-                  <p className="meal-description">Track foods and macros for this section.</p>
                 </div>
                 <button
                   type="button"
