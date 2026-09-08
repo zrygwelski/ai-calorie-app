@@ -529,6 +529,7 @@ export default function Home() {
                         }))
                       }
                       aria-label="Protein percentage goal"
+                      inputMode="numeric"
                     />
                     %
                   </span>
@@ -570,6 +571,7 @@ export default function Home() {
                         }))
                       }
                       aria-label="Carbs percentage goal"
+                      inputMode="numeric"
                     />
                     %
                   </span>
@@ -611,6 +613,7 @@ export default function Home() {
                         }))
                       }
                       aria-label="Fat percentage goal"
+                      inputMode="numeric"
                     />
                     %
                   </span>
@@ -702,6 +705,7 @@ export default function Home() {
                         age: e.target.value,
                       }))
                     }
+                    inputMode="numeric"
                   />
                 </label>
 
@@ -722,6 +726,7 @@ export default function Home() {
                       }
                       aria-label="Height in feet"
                       placeholder="ft"
+                      inputMode="numeric"
                     />
                     <input
                       className="meal-input"
@@ -737,6 +742,7 @@ export default function Home() {
                       }
                       aria-label="Height in inches"
                       placeholder="in"
+                      inputMode="numeric"
                     />
                   </div>
                 </label>
@@ -755,6 +761,7 @@ export default function Home() {
                         pounds: e.target.value,
                       }))
                     }
+                    inputMode="numeric"
                   />
                 </label>
 
