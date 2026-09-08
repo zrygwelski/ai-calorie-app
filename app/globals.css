@@ -875,8 +875,7 @@ input {
   }
 
   .summary-header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 12px;
   }
@@ -887,7 +886,6 @@ input {
 
   .summary-actions {
     gap: 8px;
-    margin-top: 4px;
   }
 
   .summary-actions button,
