@@ -210,6 +210,8 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [rawOutput, setRawOutput] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState<GoalDraft>(() =>
     createGoalDraft(initialUsersData["Zach"].dailyGoals)
@@ -393,10 +395,12 @@ export default function Home() {
   };
 
   const handleSubmit = async () => {
-    if (!activeMeal) {
+    if (!activeMeal || isSubmittingRef.current) {
       return;
     }
 
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
     setError("");
     setRawOutput("");
 
@@ -455,6 +459,9 @@ export default function Home() {
       const message =
         err instanceof Error ? err.message : "Something went wrong while fetching data";
       setError(message);
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -996,8 +1003,14 @@ export default function Home() {
               className="meal-input"
             />
 
-            <button type="button" className="submit-button" onClick={handleSubmit}>
-              Save entry
+            <button
+              type="button"
+              className="submit-button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save entry"}
             </button>
 
             {error ? <p className="error-message">{error}</p> : null}
