@@ -820,7 +820,7 @@ export default function Home() {
         <section className="summary" aria-label="Daily summary">
           <div className="summary-header">
             <div>
-              <p className="eyebrow">Daily Summary</p>
+              <h2>Daily Summary</h2>
             </div>
             <div className="summary-actions">
               <button
