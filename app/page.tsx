@@ -729,7 +729,7 @@ export default function Home() {
                             </button>
                           </div>
                         </div>
-                        <div className="entry-metrics">
+                        <div className="entry-metrics exercise-metrics">
                           <p className="metric metric--sets">
                             <span className="metric-label">Sets</span>
                             <span className="metric-value">{exercise.sets}</span>

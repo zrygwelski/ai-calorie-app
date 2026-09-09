@@ -1013,6 +1013,11 @@ input {
   border-color: rgba(var(--metric-reps), 0.22);
 }
 
+.exercise-metrics .metric {
+  min-width: 108px;
+  justify-content: space-between;
+}
+
 .metric--reps .metric-label {
   color: rgb(var(--metric-reps));
 }
@@ -1308,6 +1313,10 @@ input {
     padding: 7px 9px;
     border-radius: 9px;
     font-size: 12px;
+  }
+
+  .exercise-metrics .metric {
+    min-width: 92px;
   }
 
   .entry-qty {
