@@ -44,6 +44,33 @@ type UserData = {
   entries: Record<MealSection, FoodEntry[]>;
 };
 
+type ActiveTab = "food" | "gym";
+
+type GymExercise = {
+  id: string;
+  name: string;
+  sets: string;
+  weight: string;
+  reps: string;
+};
+
+type Workout = {
+  id: string;
+  name: string;
+  exercises: GymExercise[];
+};
+
+type ExerciseDraft = {
+  name: string;
+  sets: string;
+  weight: string;
+  reps: string;
+};
+
+function createExerciseDraft(): ExerciseDraft {
+  return { name: "", sets: "", weight: "", reps: "" };
+}
+
 const STORAGE_KEY = "calorie-club-data";
 
 function createBlankUserData(): UserData {
@@ -192,6 +219,10 @@ function clampInt(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(value)));
 }
 
+function generateId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function Home() {
   const [activeMeal, setActiveMeal] = useState<MealSection | null>(null);
   const [input, setInput] = useState("");
@@ -213,6 +244,14 @@ export default function Home() {
   const [entries, setEntries] = useState<Record<MealSection, FoodEntry[]>>(
     () => createBlankUserData().entries
   );
+  const [activeTab, setActiveTab] = useState<ActiveTab>("food");
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
+  const [newWorkoutName, setNewWorkoutName] = useState("");
+  const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
+  const [exerciseDraft, setExerciseDraft] = useState<ExerciseDraft>(() =>
+    createExerciseDraft()
+  );
   const hasMounted = useRef(false);
 
   useEffect(() => {
@@ -228,6 +267,7 @@ export default function Home() {
         entries?: Record<MealSection, FoodEntry[]>;
         activeUser?: string;
         usersData?: Record<string, UserData>;
+        workouts?: Workout[];
       };
 
       // Legacy storage (pre multi-user removal) nested data under
@@ -245,6 +285,9 @@ export default function Home() {
       if (loaded.entries) {
         setEntries(loaded.entries);
       }
+      if (parsed.workouts) {
+        setWorkouts(parsed.workouts);
+      }
     } catch {
       // Ignore invalid storage data and continue with defaults
     } finally {
@@ -258,11 +301,11 @@ export default function Home() {
     }
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ dailyGoals, entries }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ dailyGoals, entries, workouts }));
     } catch {
       // localStorage may be unavailable in some browser modes
     }
-  }, [dailyGoals, entries]);
+  }, [dailyGoals, entries, workouts]);
 
   const toggleGoalsOpen = () => {
     if (goalsOpen) {
@@ -295,6 +338,76 @@ export default function Home() {
     updater: (entries: Record<MealSection, FoodEntry[]>) => Record<MealSection, FoodEntry[]>
   ) => {
     setEntries(updater);
+  };
+
+  const updateWorkouts = (updater: (workouts: Workout[]) => Workout[]) => {
+    setWorkouts(updater);
+  };
+
+  const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? null;
+
+  const handleAddWorkout = () => {
+    const name = newWorkoutName.trim();
+    if (!name) {
+      return;
+    }
+
+    updateWorkouts((current) => [...current, { id: generateId(), name, exercises: [] }]);
+    setNewWorkoutName("");
+  };
+
+  const handleDeleteWorkout = (workoutId: string, workoutName: string) => {
+    const confirmed = window.confirm(
+      `Delete "${workoutName}"? This will remove all of its exercises.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    updateWorkouts((current) => current.filter((workout) => workout.id !== workoutId));
+    if (activeWorkoutId === workoutId) {
+      setActiveWorkoutId(null);
+    }
+  };
+
+  const handleDeleteExercise = (workoutId: string, exerciseId: string) => {
+    updateWorkouts((current) =>
+      current.map((workout) =>
+        workout.id === workoutId
+          ? { ...workout, exercises: workout.exercises.filter((exercise) => exercise.id !== exerciseId) }
+          : workout
+      )
+    );
+  };
+
+  const handleAddExercise = () => {
+    if (!activeWorkoutId) {
+      return;
+    }
+
+    const name = exerciseDraft.name.trim();
+    if (!name) {
+      return;
+    }
+
+    const newExercise: GymExercise = {
+      id: generateId(),
+      name,
+      sets: exerciseDraft.sets.trim() || "-",
+      weight: exerciseDraft.weight.trim() || "-",
+      reps: exerciseDraft.reps.trim() || "-",
+    };
+
+    updateWorkouts((current) =>
+      current.map((workout) =>
+        workout.id === activeWorkoutId
+          ? { ...workout, exercises: [...workout.exercises, newExercise] }
+          : workout
+      )
+    );
+
+    setExerciseDraft(createExerciseDraft());
+    setExerciseModalOpen(false);
   };
 
   const totals = mealSections.reduce(
@@ -427,6 +540,159 @@ export default function Home() {
   return (
     <main className="page">
       <div className="app-shell">
+        <div className="tab-bar" role="tablist" aria-label="Section">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "food"}
+            className={`tab-button ${activeTab === "food" ? "tab-button--active" : ""}`}
+            onClick={() => setActiveTab("food")}
+          >
+            Food
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "gym"}
+            className={`tab-button ${activeTab === "gym" ? "tab-button--active" : ""}`}
+            onClick={() => setActiveTab("gym")}
+          >
+            Gym
+          </button>
+        </div>
+
+        {activeTab === "gym" ? (
+          activeWorkout ? (
+            <div className="workout-detail">
+              <button
+                type="button"
+                className="back-button"
+                onClick={() => setActiveWorkoutId(null)}
+              >
+                ← Back to workouts
+              </button>
+
+              <div className="workout-detail-header">
+                <div>
+                  <p className="eyebrow">Workout</p>
+                  <h2>{activeWorkout.name}</h2>
+                </div>
+                <button
+                  type="button"
+                  className="add-button"
+                  onClick={() => {
+                    setExerciseDraft(createExerciseDraft());
+                    setExerciseModalOpen(true);
+                  }}
+                  aria-label={`Add exercise to ${activeWorkout.name}`}
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="entry-list">
+                {activeWorkout.exercises.length === 0 ? (
+                  <p className="empty-state">No exercises yet.</p>
+                ) : (
+                  activeWorkout.exercises.map((exercise) => (
+                    <article key={exercise.id} className="entry-card">
+                      <div className="entry-header">
+                        <h3>{exercise.name}</h3>
+                        <button
+                          type="button"
+                          className="delete-button"
+                          onClick={() => handleDeleteExercise(activeWorkout.id, exercise.id)}
+                          aria-label={`Delete ${exercise.name}`}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="entry-metrics">
+                        <p className="metric">
+                          <span className="metric-label">Sets</span>
+                          <span className="metric-value">{exercise.sets}</span>
+                        </p>
+                        <p className="metric">
+                          <span className="metric-label">Weight</span>
+                          <span className="metric-value">{exercise.weight}</span>
+                        </p>
+                        <p className="metric">
+                          <span className="metric-label">Max reps</span>
+                          <span className="metric-value">{exercise.reps}</span>
+                        </p>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="workout-list">
+              <div className="gym-header">
+                <div>
+                  <p className="eyebrow">Gym</p>
+                  <h2>Workouts</h2>
+                </div>
+              </div>
+
+              <div className="gym-add-form">
+                <input
+                  className="meal-input"
+                  value={newWorkoutName}
+                  onChange={(e) => setNewWorkoutName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleAddWorkout();
+                    }
+                  }}
+                  placeholder="New workout name (e.g. Back and Biceps)"
+                />
+                <button type="button" className="submit-button" onClick={handleAddWorkout}>
+                  Add workout
+                </button>
+              </div>
+
+              {workouts.length === 0 ? (
+                <p className="empty-state">No workouts yet. Add one above to get started.</p>
+              ) : (
+                <div className="workout-grid">
+                  {workouts.map((workout) => (
+                    <div
+                      key={workout.id}
+                      className="workout-card"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setActiveWorkoutId(workout.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setActiveWorkoutId(workout.id);
+                        }
+                      }}
+                    >
+                      <p className="workout-card-name">{workout.name}</p>
+                      <p className="workout-card-meta">
+                        {workout.exercises.length} exercise{workout.exercises.length === 1 ? "" : "s"}
+                      </p>
+                      <button
+                        type="button"
+                        className="delete-button workout-card-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteWorkout(workout.id, workout.name);
+                        }}
+                        aria-label={`Delete ${workout.name}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        ) : (
+          <>
         <section className="summary" aria-label="Daily summary">
           <div className="summary-header">
             <div>
@@ -897,6 +1163,8 @@ export default function Home() {
             </section>
           ))}
         </div>
+          </>
+        )}
       </div>
 
       {activeMeal ? (
@@ -936,6 +1204,92 @@ export default function Home() {
                 <pre className="raw-output">{rawOutput}</pre>
               </div>
             ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {exerciseModalOpen && activeWorkout ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setExerciseModalOpen(false)}
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exercise-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <p className="modal-eyebrow">New exercise</p>
+                <h2 id="exercise-modal-title">Add to {activeWorkout.name}</h2>
+              </div>
+              <button
+                type="button"
+                className="close-button"
+                onClick={() => setExerciseModalOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="estimate-grid">
+              <label className="goals-field">
+                <span className="goals-label">Exercise</span>
+                <input
+                  className="meal-input"
+                  value={exerciseDraft.name}
+                  onChange={(e) =>
+                    setExerciseDraft((current) => ({ ...current, name: e.target.value }))
+                  }
+                  placeholder="e.g. Bent over row"
+                />
+              </label>
+
+              <label className="goals-field">
+                <span className="goals-label">Sets</span>
+                <input
+                  className="meal-input"
+                  value={exerciseDraft.sets}
+                  onChange={(e) =>
+                    setExerciseDraft((current) => ({ ...current, sets: e.target.value }))
+                  }
+                  placeholder="3"
+                  inputMode="numeric"
+                />
+              </label>
+
+              <label className="goals-field">
+                <span className="goals-label">Weight</span>
+                <input
+                  className="meal-input"
+                  value={exerciseDraft.weight}
+                  onChange={(e) =>
+                    setExerciseDraft((current) => ({ ...current, weight: e.target.value }))
+                  }
+                  placeholder="45 lb"
+                />
+              </label>
+
+              <label className="goals-field">
+                <span className="goals-label">Max reps</span>
+                <input
+                  className="meal-input"
+                  value={exerciseDraft.reps}
+                  onChange={(e) =>
+                    setExerciseDraft((current) => ({ ...current, reps: e.target.value }))
+                  }
+                  placeholder="10"
+                  inputMode="numeric"
+                />
+              </label>
+            </div>
+
+            <button type="button" className="submit-button" onClick={handleAddExercise}>
+              Add exercise
+            </button>
           </div>
         </div>
       ) : null}
