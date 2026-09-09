@@ -1309,6 +1309,7 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="What did you eat?"
               className="meal-input"
+              autoFocus
             />
 
             <button
