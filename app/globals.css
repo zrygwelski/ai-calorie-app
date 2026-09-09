@@ -16,6 +16,18 @@ body {
   --tint-dinner: 140, 175, 217;
   --tint-snacks: 199, 165, 214;
 
+  --metric-sets: 155, 132, 184;
+  --metric-weight: 95, 168, 160;
+  --metric-reps: 209, 130, 92;
+
+  --tint-workout-1: 224, 184, 115;
+  --tint-workout-2: 127, 174, 140;
+  --tint-workout-3: 140, 175, 217;
+  --tint-workout-4: 199, 165, 214;
+  --tint-workout-5: 209, 130, 92;
+
+  --accent-gym: 95, 148, 168;
+
   --surface-0: #FBF6EF;
   --surface-1: rgba(255, 253, 250, 0.92);
   --surface-2: rgba(255, 251, 246, 0.96);
@@ -529,6 +541,12 @@ input {
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
+.tab-button--gym.tab-button--active {
+  box-shadow:
+    0 4px 14px rgba(var(--accent-gym), 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
 .tab-button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 4px rgba(var(--accent), 0.22);
@@ -599,6 +617,41 @@ input {
   outline: none;
   border-color: rgba(var(--accent), 0.65);
   box-shadow: 0 0 0 4px rgba(var(--accent), 0.22);
+}
+
+.workout-card--tint-1 {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 250, 0.9), rgba(250, 244, 236, 0.9)),
+    rgba(var(--tint-workout-1), 0.14);
+  border-color: rgba(var(--tint-workout-1), 0.3);
+}
+
+.workout-card--tint-2 {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 250, 0.9), rgba(250, 244, 236, 0.9)),
+    rgba(var(--tint-workout-2), 0.14);
+  border-color: rgba(var(--tint-workout-2), 0.3);
+}
+
+.workout-card--tint-3 {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 250, 0.9), rgba(250, 244, 236, 0.9)),
+    rgba(var(--tint-workout-3), 0.14);
+  border-color: rgba(var(--tint-workout-3), 0.3);
+}
+
+.workout-card--tint-4 {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 250, 0.9), rgba(250, 244, 236, 0.9)),
+    rgba(var(--tint-workout-4), 0.14);
+  border-color: rgba(var(--tint-workout-4), 0.3);
+}
+
+.workout-card--tint-5 {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 250, 0.9), rgba(250, 244, 236, 0.9)),
+    rgba(var(--tint-workout-5), 0.14);
+  border-color: rgba(var(--tint-workout-5), 0.3);
 }
 
 .workout-card-name {
@@ -846,6 +899,55 @@ input {
   box-shadow: 0 0 0 4px rgba(196, 92, 86, 0.16);
 }
 
+.entry-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.edit-button {
+  border: 1px solid rgba(64, 54, 46, 0.12);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(64, 54, 46, 0.02);
+  color: rgba(117, 106, 97, 0.85);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.edit-button:hover {
+  background: rgba(64, 54, 46, 0.05);
+  color: rgba(59, 52, 46, 0.9);
+  transform: translateY(-1px);
+}
+
+.edit-button:focus-visible {
+  outline: none;
+  border-color: rgba(var(--accent), 0.65);
+  box-shadow: 0 0 0 4px rgba(var(--accent), 0.22);
+}
+
+.entry-edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.entry-edit-actions .submit-button,
+.entry-edit-actions .reset-button {
+  margin-top: 0;
+  width: auto;
+  flex: 1;
+  text-align: center;
+}
+
 .entry-metrics {
   display: flex;
   align-items: center;
@@ -886,6 +988,33 @@ input {
 .metric-value {
   color: rgba(59, 52, 46, 0.92);
   font-variant-numeric: tabular-nums;
+}
+
+.metric--sets {
+  background: rgba(var(--metric-sets), 0.12);
+  border-color: rgba(var(--metric-sets), 0.22);
+}
+
+.metric--sets .metric-label {
+  color: rgb(var(--metric-sets));
+}
+
+.metric--weight {
+  background: rgba(var(--metric-weight), 0.12);
+  border-color: rgba(var(--metric-weight), 0.22);
+}
+
+.metric--weight .metric-label {
+  color: rgb(var(--metric-weight));
+}
+
+.metric--reps {
+  background: rgba(var(--metric-reps), 0.12);
+  border-color: rgba(var(--metric-reps), 0.22);
+}
+
+.metric--reps .metric-label {
+  color: rgb(var(--metric-reps));
 }
 
 .empty-state {
