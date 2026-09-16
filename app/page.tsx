@@ -15,6 +15,10 @@ type FoodEntry = {
 
 const mealSections: MealSection[] = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 
+type AnalyticsTab = "Overall" | MealSection;
+
+const analyticsTabs: AnalyticsTab[] = ["Overall", ...mealSections];
+
 type DailyGoals = {
   calories: string;
   proteinPct: number;
@@ -203,6 +207,52 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
+function sumEntries(list: FoodEntry[]) {
+  return list.reduce(
+    (acc, entry) => {
+      acc.calories += toNumber(entry.calories);
+      acc.protein += toNumber(entry.protein);
+      acc.carbs += toNumber(entry.carbs);
+      acc.fat += toNumber(entry.fat);
+      return acc;
+    },
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+}
+
+type MacroSlice = {
+  label: string;
+  grams: number;
+  calories: number;
+  color: string;
+};
+
+function macroSlices(totals: { protein: number; carbs: number; fat: number }): MacroSlice[] {
+  return [
+    { label: "Protein", grams: totals.protein, calories: totals.protein * 4, color: "var(--macro-protein)" },
+    { label: "Carbs", grams: totals.carbs, calories: totals.carbs * 4, color: "var(--macro-carbs)" },
+    { label: "Fat", grams: totals.fat, calories: totals.fat * 9, color: "var(--macro-fat)" },
+  ];
+}
+
+function buildConicGradient(slices: MacroSlice[], total: number): string {
+  if (total <= 0) {
+    return "";
+  }
+
+  let cumulative = 0;
+  const stops = slices
+    .filter((slice) => slice.calories > 0)
+    .map((slice) => {
+      const start = (cumulative / total) * 100;
+      cumulative += slice.calories;
+      const end = (cumulative / total) * 100;
+      return `${slice.color} ${start}% ${end}%`;
+    });
+
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
 function extractJsonObject(text: string): string | null {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -254,6 +304,8 @@ export default function Home() {
   );
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<ExerciseDraft>(() => createExerciseDraft());
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [analyticsTab, setAnalyticsTab] = useState<AnalyticsTab>("Overall");
   const hasMounted = useRef(false);
 
   useEffect(() => {
@@ -460,19 +512,18 @@ export default function Home() {
     setEditingExerciseId(null);
   };
 
-  const totals = mealSections.reduce(
-    (acc, meal) => {
-      for (const entry of entries[meal]) {
-        acc.calories += toNumber(entry.calories);
-        acc.protein += toNumber(entry.protein);
-        acc.carbs += toNumber(entry.carbs);
-        acc.fat += toNumber(entry.fat);
-      }
-  
-      return acc;
-    },
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
-  );
+  const totals = sumEntries(mealSections.flatMap((meal) => entries[meal]));
+
+  const openAnalytics = () => {
+    setAnalyticsTab("Overall");
+    setAnalyticsOpen(true);
+  };
+
+  const analyticsEntries = analyticsTab === "Overall" ? mealSections.flatMap((meal) => entries[meal]) : entries[analyticsTab];
+  const analyticsTotals = sumEntries(analyticsEntries);
+  const analyticsSlices = macroSlices(analyticsTotals);
+  const analyticsMacroCalories = analyticsSlices.reduce((sum, slice) => sum + slice.calories, 0);
+  const analyticsGradient = buildConicGradient(analyticsSlices, analyticsMacroCalories);
 
   const draftCalories = goalsOpen ? toNumber(goalDraft.calories) : toNumber(dailyGoals.calories);
   const draftProteinPct = goalsOpen ? toNumber(goalDraft.proteinPct) : dailyGoals.proteinPct;
@@ -851,7 +902,23 @@ export default function Home() {
           </div>
 
           <div className="summary-grid">
-            <div className="summary-stat summary-stat--calories">
+            <div
+              className={`summary-stat summary-stat--calories ${goalsOpen ? "" : "summary-stat--clickable"}`}
+              role={goalsOpen ? undefined : "button"}
+              tabIndex={goalsOpen ? undefined : 0}
+              onClick={goalsOpen ? undefined : openAnalytics}
+              onKeyDown={
+                goalsOpen
+                  ? undefined
+                  : (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openAnalytics();
+                      }
+                    }
+              }
+              aria-label={goalsOpen ? undefined : "View nutrition analytics"}
+            >
               <p className="summary-label macro macro--calories">Calories</p>
               <p className="summary-value macro macro--calories">
                 {goalsOpen ? (
@@ -891,7 +958,23 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="summary-stat summary-stat--protein">
+            <div
+              className={`summary-stat summary-stat--protein ${goalsOpen ? "" : "summary-stat--clickable"}`}
+              role={goalsOpen ? undefined : "button"}
+              tabIndex={goalsOpen ? undefined : 0}
+              onClick={goalsOpen ? undefined : openAnalytics}
+              onKeyDown={
+                goalsOpen
+                  ? undefined
+                  : (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openAnalytics();
+                      }
+                    }
+              }
+              aria-label={goalsOpen ? undefined : "View nutrition analytics"}
+            >
               <p className="summary-label macro macro--protein">Protein</p>
               <p className="summary-value macro macro--protein">
                 {goalsOpen ? (
@@ -933,7 +1016,23 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="summary-stat summary-stat--carbs">
+            <div
+              className={`summary-stat summary-stat--carbs ${goalsOpen ? "" : "summary-stat--clickable"}`}
+              role={goalsOpen ? undefined : "button"}
+              tabIndex={goalsOpen ? undefined : 0}
+              onClick={goalsOpen ? undefined : openAnalytics}
+              onKeyDown={
+                goalsOpen
+                  ? undefined
+                  : (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openAnalytics();
+                      }
+                    }
+              }
+              aria-label={goalsOpen ? undefined : "View nutrition analytics"}
+            >
               <p className="summary-label macro macro--carbs">Carbs</p>
               <p className="summary-value macro macro--carbs">
                 {goalsOpen ? (
@@ -975,7 +1074,23 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="summary-stat summary-stat--fat">
+            <div
+              className={`summary-stat summary-stat--fat ${goalsOpen ? "" : "summary-stat--clickable"}`}
+              role={goalsOpen ? undefined : "button"}
+              tabIndex={goalsOpen ? undefined : 0}
+              onClick={goalsOpen ? undefined : openAnalytics}
+              onKeyDown={
+                goalsOpen
+                  ? undefined
+                  : (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openAnalytics();
+                      }
+                    }
+              }
+              aria-label={goalsOpen ? undefined : "View nutrition analytics"}
+            >
               <p className="summary-label macro macro--fat">Fat</p>
               <p className="summary-value macro macro--fat">
                 {goalsOpen ? (
@@ -1415,6 +1530,83 @@ export default function Home() {
             <button type="button" className="submit-button" onClick={handleAddExercise}>
               Add exercise
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {analyticsOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setAnalyticsOpen(false)}>
+          <div
+            className="modal modal--wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="analytics-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <p className="modal-eyebrow">Analytics</p>
+                <h2 id="analytics-modal-title">Nutrition breakdown</h2>
+              </div>
+              <button type="button" className="close-button" onClick={() => setAnalyticsOpen(false)}>
+                ×
+              </button>
+            </div>
+
+            <div className="analytics-tabs" role="tablist" aria-label="Analytics view">
+              {analyticsTabs.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={analyticsTab === tab}
+                  className={`analytics-tab ${analyticsTab === tab ? "analytics-tab--active" : ""}`}
+                  onClick={() => setAnalyticsTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {analyticsMacroCalories > 0 ? (
+              <>
+                <div className="pie-chart-wrap">
+                  <div
+                    className="pie-chart"
+                    role="img"
+                    aria-label={`Macro breakdown for ${analyticsTab}: ${analyticsSlices
+                      .map((slice) => `${slice.label} ${Math.round((slice.calories / analyticsMacroCalories) * 100)}%`)
+                      .join(", ")}`}
+                    style={{ background: analyticsGradient }}
+                  >
+                    <div className="pie-chart-hole">
+                      <span className="pie-chart-total">{Math.round(analyticsTotals.calories)}</span>
+                      <span className="pie-chart-total-label">kcal logged</span>
+                    </div>
+                  </div>
+                </div>
+
+                <ul className="pie-legend">
+                  {analyticsSlices.map((slice) => (
+                    <li key={slice.label} className="pie-legend-item">
+                      <span className="pie-legend-dot" style={{ background: slice.color }} />
+                      <span className="pie-legend-label">{slice.label}</span>
+                      <span className="pie-legend-value">
+                        {Math.round(slice.grams)}g
+                        <span className="pie-legend-pct">
+                          {" "}
+                          ({Math.round((slice.calories / analyticsMacroCalories) * 100)}%)
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="empty-state">
+                No entries logged for {analyticsTab === "Overall" ? "today" : analyticsTab} yet.
+              </p>
+            )}
           </div>
         </div>
       ) : null}
