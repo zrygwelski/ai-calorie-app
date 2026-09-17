@@ -11,6 +11,8 @@ type FoodEntry = {
   protein: number | string;
   carbs: number | string;
   fat: number | string;
+  sugar: number | string;
+  addedSugar: number | string;
 };
 
 const mealSections: MealSection[] = ["Breakfast", "Lunch", "Dinner", "Snacks"];
@@ -207,6 +209,19 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
+function normalizeFoodEntry(entry: Partial<FoodEntry>): FoodEntry {
+  return {
+    name: entry.name ?? "",
+    quantity: entry.quantity ?? "-",
+    calories: entry.calories ?? "-",
+    protein: entry.protein ?? "-",
+    carbs: entry.carbs ?? "-",
+    fat: entry.fat ?? "-",
+    sugar: entry.sugar ?? "-",
+    addedSugar: entry.addedSugar ?? "-",
+  };
+}
+
 function sumEntries(list: FoodEntry[]) {
   return list.reduce(
     (acc, entry) => {
@@ -214,9 +229,11 @@ function sumEntries(list: FoodEntry[]) {
       acc.protein += toNumber(entry.protein);
       acc.carbs += toNumber(entry.carbs);
       acc.fat += toNumber(entry.fat);
+      acc.sugar += toNumber(entry.sugar);
+      acc.addedSugar += toNumber(entry.addedSugar);
       return acc;
     },
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    { calories: 0, protein: 0, carbs: 0, fat: 0, sugar: 0, addedSugar: 0 }
   );
 }
 
@@ -337,7 +354,11 @@ export default function Home() {
         setDailyGoals(loaded.dailyGoals);
       }
       if (loaded.entries) {
-        setEntries(loaded.entries);
+        const normalizedEntries = mealSections.reduce((acc, meal) => {
+          acc[meal] = (loaded.entries?.[meal] ?? []).map(normalizeFoodEntry);
+          return acc;
+        }, {} as Record<MealSection, FoodEntry[]>);
+        setEntries(normalizedEntries);
       }
       if (parsed.workouts) {
         setWorkouts(parsed.workouts);
@@ -615,6 +636,8 @@ export default function Home() {
             protein: item.protein ?? "-",
             carbs: item.carbs ?? "-",
             fat: item.fat ?? "-",
+            sugar: item.sugar ?? "-",
+            addedSugar: item.addedSugar ?? "-",
           }));
         
           updateEntries((current) => ({
@@ -1133,6 +1156,13 @@ export default function Home() {
             </div>
           </div>
 
+          {!goalsOpen ? (
+            <p className="summary-sugar-line">
+              <span className="macro macro--sugar">Sugar</span> {Math.round(totals.sugar)}g
+              <span className="summary-goal-inline"> ({Math.round(totals.addedSugar)}g added)</span>
+            </p>
+          ) : null}
+
           {goalsOpen ? (
             <>
               <p className={`summary-hint ${goalsPctOk ? "" : "summary-subvalue--over"}`}>
@@ -1393,6 +1423,16 @@ export default function Home() {
                         <p className="metric metric--fat">
                           <span className="metric-label macro macro--fat">F</span>
                           <span className="metric-value">{entry.fat}g</span>
+                        </p>
+                      </div>
+                      <div className="entry-metrics entry-metrics--secondary">
+                        <p className="metric metric--sugar">
+                          <span className="metric-label macro macro--sugar">Sugar</span>
+                          <span className="metric-value">{entry.sugar}g</span>
+                        </p>
+                        <p className="metric metric--sugar">
+                          <span className="metric-label macro macro--sugar">Added</span>
+                          <span className="metric-value">{entry.addedSugar}g</span>
                         </p>
                       </div>
                     </article>

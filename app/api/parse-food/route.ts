@@ -31,7 +31,9 @@ export async function POST(req: Request) {
                 "calories": number,
                 "protein": number,
                 "carbs": number,
-                "fat": number
+                "fat": number,
+                "sugar": number,
+                "addedSugar": number
               }
             ]
           }
@@ -53,9 +55,13 @@ export async function POST(req: Request) {
           - If quantity is unclear, assume a reasonable portion.
           
           - Carbs can be 0 if appropriate.
-          
-          - Always include all fields (calories, protein, carbs, fat)
-          
+
+          - "sugar" is total sugar (grams), including naturally occurring and added sugar.
+            "addedSugar" is only the added/refined sugar (grams) within that total.
+            addedSugar must never exceed sugar. Both can be 0 if appropriate.
+
+          - Always include all fields (calories, protein, carbs, fat, sugar, addedSugar)
+
           - Round values to reasonable whole numbers.
           
           Goal:

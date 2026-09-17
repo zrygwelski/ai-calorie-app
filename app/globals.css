@@ -10,6 +10,7 @@ body {
   --macro-protein: #7FAE8C;
   --macro-carbs: #8CAFD9;
   --macro-fat: #E0B873;
+  --macro-sugar: #C98FA0;
 
   --tint-breakfast: 224, 184, 115;
   --tint-lunch: 127, 174, 140;
@@ -262,6 +263,13 @@ input {
   line-height: 1.6;
 }
 
+.summary-sugar-line {
+  margin: 14px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .estimate-grid {
   display: grid;
   gap: 12px;
@@ -303,6 +311,10 @@ input {
 
 .macro--fat {
   color: var(--macro-fat);
+}
+
+.macro--sugar {
+  color: var(--macro-sugar);
 }
 
 .summary-header .eyebrow {
@@ -724,6 +736,7 @@ input {
 
 .meal-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   margin-top: 40px;
 }
@@ -836,6 +849,7 @@ input {
 
 .entry-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 15px;
 }
 
@@ -960,6 +974,10 @@ input {
 
 .entry-metrics::-webkit-scrollbar {
   display: none;
+}
+
+.entry-metrics--secondary {
+  margin-top: 8px;
 }
 
 .metric {
