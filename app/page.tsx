@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import BetView from "./bet/BetView";
 
 type MealSection = "Breakfast" | "Lunch" | "Dinner" | "Snacks";
 
@@ -50,7 +51,7 @@ type UserData = {
   entries: Record<MealSection, FoodEntry[]>;
 };
 
-type ActiveTab = "food" | "gym";
+type ActiveTab = "food" | "gym" | "bet";
 
 type GymExercise = {
   id: string;
@@ -683,6 +684,15 @@ export default function Home() {
           >
             Gym
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "bet"}
+            className={`tab-button tab-button--bet ${activeTab === "bet" ? "tab-button--active" : ""}`}
+            onClick={() => setActiveTab("bet")}
+          >
+            Bet
+          </button>
         </div>
 
         {activeTab === "gym" ? (
@@ -889,6 +899,8 @@ export default function Home() {
               )}
             </div>
           )
+        ) : activeTab === "bet" ? (
+          <BetView />
         ) : (
           <>
         <section className="summary" aria-label="Daily summary">
