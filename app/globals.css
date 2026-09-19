@@ -1079,6 +1079,8 @@ input {
 
 .modal--wide {
   width: min(100%, 480px);
+  max-height: min(640px, calc(100vh - 48px));
+  overflow-y: auto;
 }
 
 .modal-header {
@@ -1345,6 +1347,10 @@ input {
   flex-direction: column;
 }
 
+.game-search-input {
+  margin-bottom: 12px;
+}
+
 .game-list {
   display: flex;
   flex-direction: column;
@@ -1491,11 +1497,6 @@ input {
   background: rgba(var(--accent-bet), 0.18);
   border-color: rgba(var(--accent-bet), 0.4);
   color: var(--text-1);
-}
-
-.bet-results {
-  border-top: 1px solid var(--border-2);
-  padding-top: 20px;
 }
 
 .bet-card-group {

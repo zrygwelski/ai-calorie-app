@@ -6,7 +6,7 @@ import type { BetRecommendation, BetType, TargetOdds } from "@/lib/bet/types";
 
 const sportOptions: { value: Sport; label: string }[] = [
   { value: "NFL", label: "NFL" },
-  { value: "NCAAF", label: "NCAA Football" },
+  { value: "NCAAF", label: "NCAAF" },
 ];
 
 const betTypeOptions: { value: BetType; label: string }[] = [
@@ -40,6 +40,7 @@ export default function BetView() {
   const [gamesLoading, setGamesLoading] = useState(true);
   const [gamesError, setGamesError] = useState("");
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [gameSearch, setGameSearch] = useState("");
 
   const [betType, setBetType] = useState<BetType | null>(null);
 
@@ -65,6 +66,7 @@ export default function BetView() {
     setGamesLoading(true);
     setGamesError("");
     setSelectedGame(null);
+    setGameSearch("");
 
     fetch(`/api/games?sport=${sport.toLowerCase()}`)
       .then(async (res) => {
@@ -92,6 +94,23 @@ export default function BetView() {
       cancelled = true;
     };
   }, [sport]);
+
+  const normalizedSearch = gameSearch.trim().toLowerCase();
+  const filteredGames = normalizedSearch
+    ? games.filter((game) => {
+        const haystack = [
+          game.homeTeam.name,
+          game.homeTeam.shortName,
+          game.homeTeam.abbreviation,
+          game.awayTeam.name,
+          game.awayTeam.shortName,
+          game.awayTeam.abbreviation,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(normalizedSearch);
+      })
+    : games;
 
   const targetOdds: TargetOdds | null = oddsNotSpecified
     ? "not_specified"
@@ -197,33 +216,47 @@ export default function BetView() {
         ) : games.length === 0 ? (
           <p className="empty-state">No upcoming games found right now.</p>
         ) : (
-          <div
-            className={`game-list ${fieldErrors.game ? "game-list--invalid" : ""}`}
-            role="group"
-            aria-label="Select a game"
-            aria-describedby={fieldErrors.game ? "game-error" : undefined}
-          >
-            {games.map((game) => (
-              <button
-                key={game.id}
-                type="button"
-                className={`game-card ${selectedGame?.id === game.id ? "game-card--selected" : ""}`}
-                onClick={() => {
-                  setSelectedGame(game);
-                  setFieldErrors((prev) => ({ ...prev, game: undefined }));
-                }}
-                aria-pressed={selectedGame?.id === game.id}
+          <>
+            <input
+              type="text"
+              className="meal-input game-search-input"
+              placeholder="Search teams…"
+              value={gameSearch}
+              onChange={(e) => setGameSearch(e.target.value)}
+              aria-label="Search teams"
+            />
+            {filteredGames.length === 0 ? (
+              <p className="empty-state">No games match “{gameSearch.trim()}”.</p>
+            ) : (
+              <div
+                className={`game-list ${fieldErrors.game ? "game-list--invalid" : ""}`}
+                role="group"
+                aria-label="Select a game"
+                aria-describedby={fieldErrors.game ? "game-error" : undefined}
               >
-                <span className="game-card-matchup">
-                  {game.awayTeam.shortName} @ {game.homeTeam.shortName}
-                </span>
-                <span className="game-card-meta">
-                  {formatGameTime(game.startTime)}
-                  {game.venue ? ` · ${game.venue}` : ""}
-                </span>
-              </button>
-            ))}
-          </div>
+                {filteredGames.map((game) => (
+                  <button
+                    key={game.id}
+                    type="button"
+                    className={`game-card ${selectedGame?.id === game.id ? "game-card--selected" : ""}`}
+                    onClick={() => {
+                      setSelectedGame(game);
+                      setFieldErrors((prev) => ({ ...prev, game: undefined }));
+                    }}
+                    aria-pressed={selectedGame?.id === game.id}
+                  >
+                    <span className="game-card-matchup">
+                      {game.awayTeam.shortName} @ {game.homeTeam.shortName}
+                    </span>
+                    <span className="game-card-meta">
+                      {formatGameTime(game.startTime)}
+                      {game.venue ? ` · ${game.venue}` : ""}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
         {fieldErrors.game ? (
           <p className="field-error" role="alert" id="game-error">
@@ -344,30 +377,56 @@ export default function BetView() {
       ) : null}
 
       {recommendation ? (
-        <section className="bet-results" aria-label="Bet recommendation">
-          <h2 className="bet-section-heading">Your Bet</h2>
-          <div className="bet-card-group">
-            {recommendation.bets.map((leg, index) => (
-              <article key={index} className="bet-card">
-                <p className="bet-card-market">{leg.market}</p>
-                <p className="bet-card-selection">{leg.selection}</p>
-                <p className="bet-card-odds">{leg.odds}</p>
-                <p className="bet-card-reason">{leg.reason}</p>
-              </article>
-            ))}
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setRecommendation(null)}
+        >
+          <div
+            className="modal modal--wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bet-results-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <p className="modal-eyebrow">Bet</p>
+                <h2 id="bet-results-title">Your Bet</h2>
+              </div>
+              <button
+                type="button"
+                className="close-button"
+                onClick={() => setRecommendation(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="bet-card-group">
+              {recommendation.bets.map((leg, index) => (
+                <article key={index} className="bet-card">
+                  <p className="bet-card-market">{leg.market}</p>
+                  <p className="bet-card-selection">{leg.selection}</p>
+                  <p className="bet-card-odds">{leg.odds}</p>
+                  <p className="bet-card-reason">{leg.reason}</p>
+                </article>
+              ))}
+            </div>
+            <p className="bet-combined-odds">
+              Combined Odds: <span>{recommendation.combinedOdds}</span>
+            </p>
+            <div className="result-panel bet-summary">
+              <p className="result-label">Why this bet?</p>
+              <p>{recommendation.summary}</p>
+            </div>
+            <p className="bet-disclaimer">
+              AI-generated analysis for informational purposes — not guaranteed and not financial
+              advice.
+            </p>
           </div>
-          <p className="bet-combined-odds">
-            Combined Odds: <span>{recommendation.combinedOdds}</span>
-          </p>
-          <div className="result-panel bet-summary">
-            <p className="result-label">Why this bet?</p>
-            <p>{recommendation.summary}</p>
-          </div>
-          <p className="bet-disclaimer">
-            AI-generated analysis for informational purposes — not guaranteed and not financial
-            advice.
-          </p>
-        </section>
+        </div>
       ) : null}
     </div>
   );
